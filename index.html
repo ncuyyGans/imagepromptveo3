@@ -1,0 +1,495 @@
+import React, { useState, useEffect } from 'react';
+
+// Make sure to load Tailwind CSS for styling
+// In a real HTML file, you would include:
+// <script src="https://cdn.tailwindcss.com/"></script>
+
+function App() {
+    // State for each input field
+    const [subjek, setSubjek] = useState('');
+    const [nama, setNama] = useState('');
+    const [usia, setUsia] = useState('');
+
+    const [bentukTubuh, setBentukTubuh] = useState('Normal');
+    const [bentukTubuhManual, setBentukTubuhManual] = useState('');
+
+    const [detailWajahRambutHidung, setDetailWajahRambutHidung] = useState('Wajah oval, rambut panjang bergelombang, hidung mancung');
+    const [detailWajahRambutHidungManual, setDetailWajahRambutHidungManual] = useState('');
+
+    const [pakaian, setPakaian] = useState('Kasual (kaos, jeans)');
+    const [pakaianManual, setPakaianManual] = useState('');
+
+    const [warnaPakaian, setWarnaPakaian] = useState('Merah');
+    const [warnaPakaianManual, setWarnaPakaianManual] = useState('');
+
+    const [aksesoris, setAksesoris] = useState('Kacamata');
+    const [aksesorisManual, setAksesorisManual] = useState('');
+
+    const [rasEtnis, setRasEtnis] = useState('Asia');
+    const [rasEtnisManual, setRasEtnisManual] = useState('');
+
+    const [ekspresi, setEkspresi] = useState('');
+    const [tempat, setTempat] = useState('');
+
+    const [waktu, setWaktu] = useState('Pagi hari (fajar menyingsing)');
+    const [waktuManual, setWaktuManual] = useState('');
+
+    const [gerakanKameraS1, setGerakanKameraS1] = useState('Static');
+    const [gerakanKameraS2, setGerakanKameraS2] = useState('Static');
+
+    const [sudutPandang, setSudutPandang] = useState('Sudut mata (eye level)');
+    const [sudutPandangManual, setSudutPandangManual] = useState('');
+
+    const [pencahayaan, setPencahayaan] = useState('Alami (sinar matahari)');
+    const [pencahayaanManual, setPencahayaanManual] = useState('');
+
+    const [gayaVideo, setGayaVideo] = useState('Realistis');
+    const [gayaVideoManual, setGayaVideoManual] = useState('');
+
+    const [suasanaVideo, setSuasanaVideo] = useState('Ceria dan penuh semangat');
+    const [suasanaVideoManual, setSuasanaVideoManual] = useState('');
+
+    const [suaraMusik, setSuaraMusik] = useState('');
+    const [scene1Input, setScene1Input] = useState('');
+    const [scene2Input, setScene2Input] = useState('');
+    const [sceneManual, setSceneManual] = useState('');
+    const [sceneOtomatis, setSceneOtomatis] = useState('Tidak'); // 'Ya' or 'Tidak'
+
+    const [kalimatDiucapkan, setKalimatDiucapkan] = useState('');
+    const [detailTambahan, setDetailTambahan] = useState('');
+
+    const [generatedPrompt, setGeneratedPrompt] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // New state for image upload and analysis
+    const [imageFile, setImageFile] = useState(null);
+    const [imageBase64, setImageBase64] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState('');
+
+
+    // Common camera movements and Higgsfield.ai motions
+    // Filter out duplicates to ensure unique keys
+    const cameraMotions = [...new Set([
+        // Umum
+        'Pan (geser horizontal)', 'Tilt (geser vertikal)', 'Dolly (maju/mundur)', 'Zoom (memperbesar/memperkecil)',
+        'Track (mengikuti subjek secara lateral)', 'Crane/Boom (pergerakan naik/turun)', 'Handheld (goyangan manual)', 'Static (diam)',
+        // Higgsfield.ai motions (and many more)
+        '3D Rotation', 'Orbit', 'Push In', 'Slide Left', 'Move Up', 'Tilt Up', 'Pan Left', 'Zoom In', 'Roll Right',
+        'Dolly Zoom In', 'Dynamic Push In', 'Smooth Pan', 'Whip Pan Left', 'Fast Zoom In', 'Rapid Orbit', 'Circular Pan',
+        'Focus Pull', 'Overhead Shot', 'Low Angle Shot', 'High Angle Shot', 'Eye Level Shot', 'Dutch Angle', 'POV Shot',
+        'Slow Motion', 'Time Lapse', 'Drone Shot', 'Steadicam Follow', 'Dramatic Reveal', 'Suspenseful Zoom', 'Emotional Pan',
+        'Floating Camera', 'Aerial View', 'Fish Eye Lens', 'Wide Angle Lens', 'Establishing Shot', 'Tracking Shot',
+        'Close-up', 'Extreme Close-up', 'Long Shot'
+        // Simplified for brevity, the full list is extensive
+    ])];
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            setImageFile(file);
+            setAnalysisError('');
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImageBase64(reader.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setImageFile(null);
+            setImageBase64('');
+            setAnalysisError('Silakan pilih file gambar yang valid (JPEG, PNG, dll.).');
+        }
+    };
+
+    const generatePromptFromImage = async () => {
+        if (!imageBase64) {
+            setAnalysisError('Silakan unggah gambar terlebih dahulu.');
+            return;
+        }
+        setIsAnalyzing(true);
+        setAnalysisError('');
+        setError('');
+
+        try {
+            const base64Data = imageBase64.split(',')[1];
+            const mimeType = imageBase64.split(';')[0].split(':')[1];
+
+            const analysisPrompt = `Analisis gambar ini secara detail. Jelaskan subjek utama, pakaian, aksesoris, latar belakang/tempat, suasana, dan gaya visual. Berikan juga dua ide adegan sinematik yang berbeda (scene 1 dan scene 2) berdasarkan gambar, lengkap dengan saran gerakan kamera yang cocok untuk masing-masing adegan. Pertahankan semua detail penting dari foto.
+
+Hasilnya harus dalam format JSON dengan kunci: "subjek", "pakaian", "aksesoris", "tempat", "suasanaVideo", "gayaVideo", "detailTambahan", "scene1", "gerakanKameraS1", "scene2", "gerakanKameraS2".`;
+
+            let chatHistory = [];
+            chatHistory.push({
+                role: "user",
+                parts: [
+                    { text: analysisPrompt },
+                    { inlineData: { mimeType, data: base64Data } }
+                ]
+            });
+            
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "subjek": { "type": "STRING" },
+                            "pakaian": { "type": "STRING" },
+                            "aksesoris": { "type": "STRING" },
+                            "tempat": { "type": "STRING" },
+                            "suasanaVideo": { "type": "STRING" },
+                            "gayaVideo": { "type": "STRING" },
+                            "detailTambahan": { "type": "STRING" },
+                            "scene1": { "type": "STRING" },
+                            "gerakanKameraS1": { "type": "STRING" },
+                            "scene2": { "type": "STRING" },
+                            "gerakanKameraS2": { "type": "STRING" }
+                        },
+                        required: ["subjek", "pakaian", "aksesoris", "tempat", "suasanaVideo", "gayaVideo", "detailTambahan", "scene1", "gerakanKameraS1", "scene2", "gerakanKameraS2"]
+                    }
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0) {
+                const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                
+                // Populate all fields from the image analysis
+                setSubjek(jsonResponse.subjek || '');
+                setPakaian('Isi manual');
+                setPakaianManual(jsonResponse.pakaian || '');
+                setAksesoris('Isi manual');
+                setAksesorisManual(jsonResponse.aksesoris || '');
+                setTempat(jsonResponse.tempat || '');
+                setSuasanaVideo('Isi manual');
+                setSuasanaVideoManual(jsonResponse.suasanaVideo || '');
+                setGayaVideo('Isi manual');
+                setGayaVideoManual(jsonResponse.gayaVideo || '');
+                setDetailTambahan(jsonResponse.detailTambahan || '');
+                
+                // Populate the new auto-generated scenes and camera movements
+                setScene1Input(jsonResponse.scene1 || '');
+                setGerakanKameraS1(jsonResponse.gerakanKameraS1 || 'Static');
+                setScene2Input(jsonResponse.scene2 || '');
+                setGerakanKameraS2(jsonResponse.gerakanKameraS2 || 'Static');
+
+                // Ensure scene automation is off as we've just manually populated them
+                setSceneOtomatis('Tidak');
+                setSceneManual('');
+
+            } else {
+                 setAnalysisError('Gagal menganalisis gambar. Tidak ada kandidat respons yang valid.');
+                 console.error('Unexpected LLM response for image analysis:', result);
+            }
+
+        } catch (err) {
+            setAnalysisError('Error saat menganalisis gambar: ' + err.message);
+            console.error('Error fetching from LLM for image analysis:', err);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+
+    const generatePrompt = async () => {
+        setIsLoading(true);
+        setError('');
+        let finalScene1 = scene1Input;
+        let finalScene2 = scene2Input;
+        let finalGerakanKameraS1 = gerakanKameraS1;
+        let finalGerakanKameraS2 = gerakanKameraS2;
+
+        if (sceneOtomatis === 'Ya' && scene1Input && scene2Input) {
+            // Scene generation logic remains the same for manual inputs
+            try {
+                let chatHistory = [];
+                const prompt = `Given Scene 1 description '${scene1Input}', and Scene 2 description '${scene2Input}', please provide a detailed description for each scene and suggest a distinct cinematic camera movement for each. Return the output as a JSON object with keys: "scene1Description", "scene1CameraMovement", "scene2Description", "scene2CameraMovement". Ensure the camera movements are distinct and suitable for cinematic video.`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "scene1Description": { "type": "STRING" },
+                                "scene1CameraMovement": { "type": "STRING" },
+                                "scene2Description": { "type": "STRING" },
+                                "scene2CameraMovement": { "type": "STRING" }
+                            },
+                            required: ["scene1Description", "scene1CameraMovement", "scene2Description", "scene2CameraMovement"]
+                        }
+                    }
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content.parts.length > 0) {
+                    const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                    finalScene1 = jsonResponse.scene1Description;
+                    finalGerakanKameraS1 = jsonResponse.scene1CameraMovement;
+                    finalScene2 = jsonResponse.scene2Description;
+                    finalGerakanKameraS2 = jsonResponse.scene2CameraMovement;
+                } else {
+                    setError('Gagal menghasilkan adegan otomatis. Silakan coba lagi.');
+                }
+            } catch (err) {
+                setError('Error saat menghasilkan adegan otomatis: ' + err.message);
+            }
+        }
+
+        const finalBentukTubuh = bentukTubuh === 'Isi manual' ? bentukTubuhManual : bentukTubuh;
+        const finalDetailWajahRambutHidung = detailWajahRambutHidung === 'Isi manual' ? detailWajahRambutHidungManual : detailWajahRambutHidung;
+        const finalPakaian = pakaian === 'Isi manual' ? pakaianManual : pakaian;
+        const finalWarnaPakaian = warnaPakaian === 'Isi manual' ? warnaPakaianManual : warnaPakaian;
+        const finalAksesoris = aksesoris === 'Isi manual' ? aksesorisManual : aksesoris;
+        const finalRasEtnis = rasEtnis === 'Isi manual' ? rasEtnisManual : rasEtnis;
+        const finalWaktu = waktu === 'Isi manual' ? waktuManual : waktu;
+        const finalSudutPandang = sudutPandang === 'Isi manual' ? sudutPandangManual : sudutPandang;
+        const finalPencahayaan = pencahayaan === 'Isi manual' ? pencahayaanManual : pencahayaan;
+        const finalGayaVideo = gayaVideo === 'Isi manual' ? gayaVideoManual : gayaVideo;
+        const finalSuasanaVideo = suasanaVideo === 'Isi manual' ? suasanaVideoManual : suasanaVideo;
+
+        let promptText = `Subject: ${subjek}.\n\nName: ${nama}.\nAge: ${usia}.\nBody Shape: ${finalBentukTubuh}.\nConsistent Facial Details: ${finalDetailWajahRambutHidung}.\nClothing: ${finalPakaian}.\nClothing Color: ${finalWarnaPakaian}.\nAccessories: ${finalAksesoris}.\nRace/Ethnicity: ${finalRasEtnis}.\nExpression: ${ekspresi}.\nLocation: ${tempat}.\nTime: ${finalWaktu}.\n\nCamera Movement (Scene 1): ${finalGerakanKameraS1}.\nCamera Movement (Scene 2): ${finalGerakanKameraS2}.\n\nCamera Angle (Scene 1): ${finalSudutPandang}.\nCamera Angle (Scene 2): ${finalSudutPandang}.\n\nLighting: ${finalPencahayaan}.\nVideo Style: ${finalGayaVideo}.\nVideo Mood: ${finalSuasanaVideo}.\nAudio/Music: ${suaraMusik}.\n`;
+
+        if (sceneManual) {
+            promptText += `\nScene Manual: ${sceneManual}`;
+        } else {
+            promptText += `\nScene 1: ${finalScene1}.\nScene 2: ${finalScene2}.\n`;
+        }
+
+        promptText += `\nDialogue (Indonesian): "${kalimatDiucapkan}"\n\nAdditional Details: ${detailTambahan}`;
+        setGeneratedPrompt(promptText.trim());
+        setIsLoading(false);
+    };
+
+    const copyToClipboard = () => {
+        const promptToCopy = generatedPrompt;
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = promptToCopy;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        try {
+            document.execCommand('copy');
+            alert('Prompt berhasil disalin!');
+        } catch (err) {
+            console.error('Gagal menyalin prompt: ', err);
+            alert('Gagal menyalin prompt. Silakan salin secara manual.');
+        }
+        document.body.removeChild(tempTextArea);
+    };
+
+
+    const renderInput = (label, state, setState, options = [], manualState, setManualState) => (
+        <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">{label}:</label>
+            {options.length > 0 ? (
+                <>
+                    <select
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                    >
+                        {options.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                        <option value="Isi manual">Isi manual</option>
+                    </select>
+                    {state === 'Isi manual' && (
+                        <input
+                            type="text"
+                            className="mt-2 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500"
+                            placeholder={`Masukkan ${label.toLowerCase()} secara manual`}
+                            value={manualState}
+                            onChange={(e) => setManualState(e.target.value)}
+                        />
+                    )}
+                </>
+            ) : (
+                <input
+                    type="text"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                />
+            )}
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-8 font-['Inter']">
+            <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-2xl border border-gray-200">
+                <h1 className="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-wide">
+                    GENERATOR PROMPT VEO3
+                </h1>
+
+                {/* --- Image Upload Section --- */}
+                <div className="mb-10 p-6 bg-blue-50 border-2 border-dashed border-blue-200 rounded-lg">
+                    <h2 className="text-2xl font-bold text-gray-700 mb-4 border-b-2 border-blue-300 pb-2">Otomatis dari Gambar</h2>
+                    <p className="text-gray-600 mb-4">Unggah foto untuk mengisi detail & adegan secara otomatis.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Pilih File Gambar:</label>
+                             <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleImageChange}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                            />
+                            {analysisError && <p className="text-red-500 text-xs mt-2">{analysisError}</p>}
+                            <button
+                                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={generatePromptFromImage}
+                                disabled={isAnalyzing || !imageBase64}
+                            >
+                                {isAnalyzing ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Menganalisis...
+                                    </>
+                                ) : (
+                                    'Buat Prompt & Adegan dari Gambar'
+                                )}
+                            </button>
+                        </div>
+                        <div className="flex justify-center items-center">
+                            {imageBase64 ? (
+                                <img src={imageBase64} alt="Preview" className="max-h-48 rounded-lg shadow-md border"/>
+                            ) : (
+                                <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                                    Pratinjau Gambar
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-8">
+                    {/* Subjek & Detail Karakter */}
+                    <div className="md:col-span-2">
+                        <h2 className="text-2xl font-bold text-gray-700 mb-4 border-b-2 border-blue-300 pb-2">Detail Karakter & Adegan (Manual)</h2>
+                    </div>
+
+                    {renderInput('Subjek', subjek, setSubjek)}
+                    {renderInput('Nama', nama, setNama)}
+                    {renderInput('Usia', usia, setUsia)}
+
+                    {renderInput('Bentuk tubuh', bentukTubuh, setBentukTubuh, ['Atletis', 'Kurva', 'Ramping', 'Berotot', 'Normal'], bentukTubuhManual, setBentukTubuhManual)}
+                    {renderInput('Detail konsisten wajah, rambut, hidung', detailWajahRambutHidung, setDetailWajahRambutHidung, ['Wajah oval, rambut panjang bergelombang, hidung mancung', 'Wajah persegi, rambut pendek lurus, hidung kecil'], detailWajahRambutHidungManual, setDetailWajahRambutHidungManual)}
+                    {renderInput('Pakaian', pakaian, setPakaian, ['Kasual (kaos, jeans)', 'Formal (jas, gaun malam)', 'Sporty (pakaian olahraga)', 'Tradisional (kebaya, batik)', 'Fantasi (kostum pahlawan, gaun peri)'], pakaianManual, setPakaianManual)}
+                    {renderInput('Warna pakaian', warnaPakaian, setWarnaPakaian, ['Merah', 'Biru', 'Hijau', 'Hitam', 'Putih'], warnaPakaianManual, setWarnaPakaianManual)}
+                    {renderInput('Aksesoris', aksesoris, setAksesoris, ['Kacamata', 'Topi', 'Perhiasan (kalung, anting, gelang)', 'Tas', 'Syal'], aksesorisManual, setAksesorisManual)}
+                    {renderInput('Ras/Etnis', rasEtnis, setRasEtnis, ['Asia', 'Kaukasia', 'Afrika', 'Latin', 'Timur Tengah'], rasEtnisManual, setRasEtnisManual)}
+                    {renderInput('Ekspresi', ekspresi, setEkspresi)}
+                    {renderInput('Tempat', tempat, setTempat)}
+                    {renderInput('Waktu', waktu, setWaktu, ['Pagi hari (fajar menyingsing)', 'Siang hari (terik matahari)', 'Sore hari (matahari terbenam)', 'Malam hari (bulan purnama)'], waktuManual, setWaktuManual)}
+
+                    {/* Pengaturan Kamera & Video */}
+                    <div className="md:col-span-2 mt-8">
+                        <h2 className="text-2xl font-bold text-gray-700 mb-4 border-b-2 border-blue-300 pb-2">Pengaturan Kamera & Video</h2>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Gerakan Kamera (Scene 1):</label>
+                        <select className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500" value={gerakanKameraS1} onChange={(e) => setGerakanKameraS1(e.target.value)} disabled={sceneOtomatis === 'Ya'}>
+                            {cameraMotions.map((motion) => (<option key={motion} value={motion.split('(')[0].trim()}>{motion}</option>))}
+                        </select>
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Gerakan Kamera (Scene 2):</label>
+                        <select className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500" value={gerakanKameraS2} onChange={(e) => setGerakanKameraS2(e.target.value)} disabled={sceneOtomatis === 'Ya'}>
+                            {cameraMotions.map((motion) => (<option key={motion} value={motion.split('(')[0].trim()}>{motion}</option>))}
+                        </select>
+                    </div>
+
+                    {renderInput('Sudut pandang', sudutPandang, setSudutPandang, ['Sudut rendah (low angle)', 'Sudut tinggi (high angle)', 'Sudut mata (eye level)', 'Dari atas (overhead)', 'Dari bawah (worm\'s eye view)', 'POV (Point of View)'], sudutPandangManual, setSudutPandangManual)}
+                    {renderInput('Pencahayaan', pencahayaan, setPencahayaan, ['Alami (sinar matahari)', 'Studio (pencahayaan terkontrol)', 'Rembrandt (terang-gelap kontras)', 'Butterfly (bayangan kupu-kupu di bawah hidung)', 'Split (satu sisi terang, satu sisi gelap)', 'Backlight (cahaya dari belakang subjek)', 'Low key (gelap, banyak bayangan)', 'High key (terang, minim bayangan)'], pencahayaanManual, setPencahayaanManual)}
+                    {renderInput('Gaya video', gayaVideo, setGayaVideo, ['Realistis', 'Animasi 3D', 'Animasi 2D', 'Kartun', 'Anime', 'Lukisan minyak', 'Gaya sketsa', 'Cyberpunk', 'Fantasi'], gayaVideoManual, setGayaVideoManual)}
+                    {renderInput('Suasana video', suasanaVideo, setSuasanaVideo, ['Ceria dan penuh semangat', 'Misterius dan menegangkan', 'Tenang dan damai', 'Sedih dan melankolis', 'Epik dan heroik', 'Komedi dan lucu'], suasanaVideoManual, setSuasanaVideoManual)}
+                    {renderInput('Suara atau musik', suaraMusik, setSuaraMusik)}
+
+                    {/* Struktur Adegan & Dialog */}
+                    <div className="md:col-span-2 mt-8">
+                        <h2 className="text-2xl font-bold text-gray-700 mb-4 border-b-2 border-blue-300 pb-2">Struktur Adegan & Dialog</h2>
+                    </div>
+
+                    <div className="mb-4 md:col-span-2">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Scene 1:</label>
+                        <textarea className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500 h-24 resize-y" value={scene1Input} onChange={(e) => setScene1Input(e.target.value)} disabled={!!sceneManual}></textarea>
+                    </div>
+                    <div className="mb-4 md:col-span-2">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Scene 2:</label>
+                        <textarea className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500 h-24 resize-y" value={scene2Input} onChange={(e) => setScene2Input(e.target.value)} disabled={!!sceneManual}></textarea>
+                    </div>
+                    <div className="mb-4 md:col-span-2">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Scene Manual (Isi di sini jika Anda ingin menulis sendiri seluruh adegan):</label>
+                        <textarea className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500 h-32 resize-y" value={sceneManual} onChange={(e) => { setSceneManual(e.target.value); if (e.target.value) { setSceneOtomatis('Tidak'); } }}></textarea>
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Scene Otomatis (dari input manual):</label>
+                        <select className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-blue-500" value={sceneOtomatis} onChange={(e) => setSceneOtomatis(e.target.value)} disabled={!!sceneManual}>
+                            <option value="Tidak">Tidak</option>
+                            <option value="Ya">Ya</option>
+                        </select>
+                         <p className="text-xs text-gray-500 mt-1">Hanya berlaku jika Anda mengisi Scene 1 & 2 secara manual di atas.</p>
+                    </div>
+                    {renderInput('Kalimat yang diucapkan (dalam Bahasa Indonesia)', kalimatDiucapkan, setKalimatDiucapkan)}
+                    {renderInput('Detail tambahan', detailTambahan, setDetailTambahan)}
+                </div>
+
+                <div className="flex justify-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center justify-center" onClick={generatePrompt} disabled={isLoading}>
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Sedang membuat prompt...
+                            </>
+                        ) : (
+                            'Gabungkan & Buat Prompt Final'
+                        )}
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="mt-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <p className="font-bold">Terjadi Kesalahan:</p><p>{error}</p>
+                    </div>
+                )}
+
+                {generatedPrompt && (
+                    <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-lg shadow-inner">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-gray-300 pb-2">Hasil Prompt VEO3 Anda:</h2>
+                        <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-white p-4 rounded-md border border-gray-300 overflow-auto max-h-96">{generatedPrompt}</pre>
+                        <div className="flex justify-center mt-4">
+                            <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300" onClick={copyToClipboard}>Salin Prompt</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default App;
